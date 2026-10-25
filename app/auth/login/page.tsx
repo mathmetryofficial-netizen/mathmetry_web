@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLoading } from '@/components/LoadingProvider';
 import Loader from '@/components/Loader';
+import { ArrowRight, CheckCircle2, Lock, Mail } from 'lucide-react';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -37,88 +38,119 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen grid lg:grid-cols-2">
-            {/* Visual Side */}
-            <div className="hidden lg:flex flex-col justify-center p-12 relative bg-slate-900 text-white overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-slate-900 z-0" />
-                <div className="relative z-10 max-w-lg">
-                    <Link href="/" className="mb-10 block text-2xl font-bold">Mathmetry</Link>
-                    <h1 className="text-4xl font-bold mb-6">Welcome Back</h1>
-                    <p className="text-lg text-slate-300">
-                        Continue your journey to mathematical excellence. Access your personalized dashboard and track your progress.
+        <div className="min-h-screen grid lg:grid-cols-12 bg-[#FFFCFB] font-sans selection:bg-[#FFF4EC] selection:text-[#DE5815]">
+            {/* Visual Editorial Side */}
+            <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-12 bg-[#F9F5F1] border-r border-[#EAE5E1] relative">
+                <div>
+                    <Link href="/" className="inline-flex items-center gap-2 mb-12 group">
+                        <div className="w-8 h-8 rounded-full bg-[#111111] text-white flex items-center justify-center font-bold text-sm">
+                            M
+                        </div>
+                        <span className="text-xl font-bold tracking-tight text-[#111111]">
+                            Mathmetry<span className="text-[#F36A21]">.</span>
+                        </span>
+                    </Link>
+
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#F36A21] bg-[#FFF4EC] border border-[#F36A21]/20 px-3 py-1 rounded-full inline-block mb-4">
+                        Welcome Back
+                    </span>
+                    <h1 className="text-4xl font-extrabold text-[#111111] leading-tight mb-4">
+                        Continue Your Academic Preparation.
+                    </h1>
+                    <div className="w-12 h-1 bg-[#F36A21] rounded-full mb-6" />
+                    <p className="text-sm text-[#626262] leading-relaxed mb-8">
+                        Sign in to access your purchased board materials, chapter-wise formula banks, and online mock tests.
                     </p>
+
+                    <div className="space-y-3 pt-6 border-t border-[#EAE5E1]">
+                        {[
+                            "Instant access to Foundation, ICSE & CBSE materials",
+                            "Secure watermarked distraction-free reading",
+                            "Timed practice tests with rubric marking answers"
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs font-medium text-[#111111]">
+                                <CheckCircle2 size={15} className="text-[#F36A21] shrink-0" />
+                                <span>{item}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="text-xs text-[#858585] pt-8">
+                    © {new Date().getFullYear()} Mathmetry. All rights reserved.
                 </div>
             </div>
 
             {/* Form Side */}
-            <div className="flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950">
-                <div className="w-full max-w-md space-y-8 bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div className="text-center">
-                        <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sign in</h2>
-                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            <div className="lg:col-span-7 flex items-center justify-center p-6 sm:p-12">
+                <div className="w-full max-w-md space-y-8 bg-white p-8 sm:p-10 rounded-3xl border border-[#EAE5E1] shadow-xs">
+                    <div>
+                        <Link href="/" className="lg:hidden inline-flex items-center gap-2 mb-6">
+                            <div className="w-7 h-7 rounded-full bg-[#111111] text-white flex items-center justify-center font-bold text-xs">
+                                M
+                            </div>
+                            <span className="text-lg font-bold text-[#111111]">Mathmetry.</span>
+                        </Link>
+                        <h2 className="text-3xl font-extrabold tracking-tight text-[#111111]">Sign In</h2>
+                        <p className="mt-2 text-xs text-[#626262]">
                             New to Mathmetry?{' '}
-                            <Link href="/auth/signup" className="font-medium text-primary hover:text-primary/90">
+                            <Link href="/auth/signup" className="font-bold text-[#F36A21] hover:underline">
                                 Create an account
                             </Link>
                         </p>
                     </div>
 
-                    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
                         {error && (
-                            <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-md">
+                            <div className="p-3 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl">
                                 {error}
                             </div>
                         )}
 
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    Email address
+                                <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-[#111111] mb-1.5">
+                                    Email Address
                                 </label>
-                                <div className="mt-1">
-                                    <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        autoComplete="email"
-                                        required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="block w-full rounded-md border-slate-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3 border dark:bg-slate-800 dark:border-slate-700"
-                                        placeholder="you@example.com"
-                                    />
-                                </div>
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="block w-full rounded-xl border border-[#EAE5E1] bg-[#FFFCFB] px-4 py-3 text-sm text-[#111111] focus:border-[#F36A21] focus:ring-1 focus:ring-[#F36A21] focus:outline-none transition-colors"
+                                    placeholder="student@example.com"
+                                />
                             </div>
 
                             <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-[#111111] mb-1.5">
                                     Password
                                 </label>
-                                <div className="mt-1">
-                                    <input
-                                        id="password"
-                                        name="password"
-                                        type="password"
-                                        autoComplete="current-password"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="block w-full rounded-md border-slate-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3 border dark:bg-slate-800 dark:border-slate-700"
-                                    />
-                                </div>
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="block w-full rounded-xl border border-[#EAE5E1] bg-[#FFFCFB] px-4 py-3 text-sm text-[#111111] focus:border-[#F36A21] focus:ring-1 focus:ring-[#F36A21] focus:outline-none transition-colors"
+                                />
                             </div>
                         </div>
-
-
 
                         <div>
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="flex w-full justify-center items-center gap-2 rounded-md bg-primary px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                                className="w-full flex items-center justify-center gap-2 rounded-full bg-[#F36A21] hover:bg-[#DE5815] py-3.5 px-4 text-sm font-bold text-white shadow-xs transition-all disabled:opacity-60"
                             >
                                 {isLoading && <Loader size="sm" />}
-                                {isLoading ? 'Signing in...' : 'Sign in'}
+                                <span>{isLoading ? 'Signing In...' : 'Sign In to Mathmetry'}</span>
+                                {!isLoading && <ArrowRight size={16} />}
                             </button>
                         </div>
                     </form>

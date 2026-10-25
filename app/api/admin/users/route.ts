@@ -8,7 +8,8 @@ export async function GET() {
         
         const users = await User.find()
             .select('name email role createdAt')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
         
         return NextResponse.json({ users });
     } catch (error) {

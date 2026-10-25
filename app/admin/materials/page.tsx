@@ -312,7 +312,7 @@ export default function AdminMaterialsPage() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-indigo-600 text-white py-2 px-6 rounded-md hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm font-medium"
+                        className="bg-[#F36A21] text-white py-2.5 px-6 rounded-full hover:bg-[#DE5815] disabled:opacity-50 transition shadow-xs font-semibold text-xs"
                     >
                         {isSubmitting ? 'Saving...' : (editingMaterial ? 'Update Material' : 'Add Material')}
                     </button>
@@ -320,7 +320,7 @@ export default function AdminMaterialsPage() {
                         <button
                             type="button"
                             onClick={resetForm}
-                            className="bg-gray-100 text-gray-700 py-2 px-6 rounded-md hover:bg-gray-200 transition font-medium"
+                            className="bg-white border border-[#EAE5E1] text-[#111111] py-2.5 px-6 rounded-full hover:bg-[#F9F5F1] transition font-semibold text-xs"
                         >
                             Cancel
                         </button>

@@ -22,7 +22,7 @@ const MaterialSchema = new mongoose.Schema({
     board: {
         type: String,
         required: true,
-        enum: ['Foundation', 'ICSE', 'CBSE'],
+        enum: ['Foundation', 'ICSE', 'CBSE', 'WB'],
     },
     chapter: {
         type: String,

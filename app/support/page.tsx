@@ -1,80 +1,132 @@
+'use client';
+
 import Link from "next/link";
-import { Mail, MessageSquare, Phone } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import ApplicationFooter from "@/components/ApplicationFooter";
+import SectionHeading from "@/components/SectionHeading";
+import { Mail, MessageSquare, HelpCircle, Shield, FileText, ChevronDown } from "lucide-react";
+import { useState } from "react";
 
 export default function SupportPage() {
+    const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+    const faqs = [
+        {
+            q: "How does the ₹999 One-Time Board Access work?",
+            a: "When you purchase access for a specific board (Foundation, ICSE, or CBSE) and class, your account receives permanent, unrestricted access to all chapter notes, formula sheets, and past papers for that board. There are no recurring monthly charges."
+        },
+        {
+            q: "Can I download or print the chapter materials?",
+            a: "To prevent unauthorized redistribution and protect intellectual property, all materials are viewed inside our distraction-free, encrypted, watermarked digital viewer. The viewer works seamlessly on mobile, tablet, and desktop browsers."
+        },
+        {
+            q: "What payment methods are supported for board access?",
+            a: "We support all major Indian and international payment methods via our secure Razorpay integration, including UPI (Google Pay, PhonePe, Paytm), Debit/Credit Cards, and Net Banking."
+        },
+        {
+            q: "How quickly is access granted after payment?",
+            a: "Access is granted immediately upon successful payment verification. You will be redirected right back to the chapter materials catalog with full viewing permissions."
+        },
+        {
+            q: "How do the timed mock exams work?",
+            a: "Students can take full-length or chapter-wise timed tests online. At the end of the test, an instant performance breakdown, score calculation, and model solution explanations are provided."
+        }
+    ];
+
     return (
-        <div className="min-h-screen bg-[#F7F8FC] flex justify-center p-4 md:p-8 font-sans">
-            <div className="w-full max-w-[1400px] bg-white rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col min-h-[90vh]">
+        <div className="min-h-screen bg-[#FFFCFB] text-[#111111] flex flex-col font-sans selection:bg-[#FFF4EC] selection:text-[#DE5815]">
+            <Navbar />
 
-                <nav className="flex items-center justify-between px-8 py-6 md:px-12 border-b border-slate-100">
-                    <div className="flex-1 flex items-center justify-start">
-                        <Link href="/" className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                            <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white">M</div>
-                            Mathmetry
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <SectionHeading
+                    eyebrow="Help & Inquiries"
+                    title="How Can We Help You"
+                    highlight="Excel?"
+                    subtitle="Have questions about board coverage, accessing study materials, or billing? Our academic support desk is ready to assist."
+                />
+
+                {/* Support Channels */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-20">
+                    <div className="card-editorial p-8 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 rounded-xl bg-[#FFF4EC] text-[#F36A21] flex items-center justify-center mb-5">
+                            <Mail size={22} />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#111111] mb-1">Email Support</h3>
+                        <p className="text-xs text-[#626262] mb-4">Inquiries answered within 24 hours</p>
+                        <a
+                            href="mailto:mathmetry.official@gmail.com"
+                            className="text-xs font-bold text-[#F36A21] hover:underline"
+                        >
+                            mathmetry.official@gmail.com
+                        </a>
+                    </div>
+
+                    <div className="card-editorial p-8 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 rounded-xl bg-[#F9F5F1] text-[#111111] flex items-center justify-center mb-5">
+                            <Shield size={22} className="text-[#F36A21]" />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#111111] mb-1">Board Access Assistance</h3>
+                        <p className="text-xs text-[#626262] mb-4">Payment or account activation queries</p>
+                        <Link
+                            href="/materials"
+                            className="text-xs font-bold text-[#111111] hover:text-[#F36A21]"
+                        >
+                            View Materials Portal →
                         </Link>
                     </div>
-                    <div className="hidden md:flex flex-1 items-center justify-center gap-8 font-medium text-slate-500">
-                        <Link href="/" className="hover:text-slate-900 transition">Home</Link>
-                        <Link href="/courses" className="hover:text-slate-900 transition">Courses</Link>
-                        <Link href="/services" className="hover:text-slate-900 transition">Services</Link>
-                        <Link href="/support" className="text-slate-900 font-bold">Support</Link>
-                        <Link href="/about" className="hover:text-slate-900 transition">About</Link>
-                    </div>
-                    <div className="flex-1 flex items-center justify-end">
-                        <Link href="/auth/signup" className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm hover:scale-105 transition-transform">
-                            Start
+
+                    <div className="card-editorial p-8 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 rounded-xl bg-[#F9F5F1] text-[#111111] flex items-center justify-center mb-5">
+                            <FileText size={22} className="text-[#F36A21]" />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#111111] mb-1">Curriculum Advice</h3>
+                        <p className="text-xs text-[#626262] mb-4">Choose between Foundation, ICSE, or CBSE</p>
+                        <Link
+                            href="/services"
+                            className="text-xs font-bold text-[#111111] hover:text-[#F36A21]"
+                        >
+                            Explore Services →
                         </Link>
                     </div>
-                </nav>
+                </div>
 
-                <main className="flex-1 p-8 md:p-12 flex flex-col items-center justify-center">
-                    <div className="text-center max-w-2xl">
-                        <h1 className="text-4xl font-bold text-slate-900 mb-6">How can we help you?</h1>
-                        <p className="text-lg text-slate-600 mb-12">
-                            Our dedicated support team is here to assist you with any questions or issues you might have.
-                        </p>
-                    </div>
+                {/* FAQ Section */}
+                <div className="max-w-3xl mx-auto">
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-[#111111] text-center mb-3">
+                        Frequently Asked Questions
+                    </h3>
+                    <div className="w-12 h-1 bg-[#F36A21] rounded-full mx-auto mb-8" />
 
-                    <div className="grid md:grid-cols-3 gap-8 w-full max-w-4xl">
-                        <div className="p-8 border border-slate-200 rounded-2xl flex flex-col items-center hover:bg-slate-50 transition cursor-pointer group">
-                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition">
-                                <Mail size={24} />
+                    <div className="space-y-4">
+                        {faqs.map((faq, idx) => (
+                            <div
+                                key={idx}
+                                className="bg-white border border-[#EAE5E1] rounded-2xl overflow-hidden transition-all"
+                            >
+                                <button
+                                    onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                                    className="w-full p-6 text-left flex items-center justify-between gap-4 font-bold text-sm text-[#111111]"
+                                >
+                                    <span>{faq.q}</span>
+                                    <ChevronDown
+                                        size={18}
+                                        className={`text-[#F36A21] transition-transform duration-200 shrink-0 ${
+                                            openFaq === idx ? 'rotate-180' : ''
+                                        }`}
+                                    />
+                                </button>
+                                {openFaq === idx && (
+                                    <div className="px-6 pb-6 text-xs sm:text-sm text-[#626262] leading-relaxed border-t border-[#F0EBE7] pt-4">
+                                        {faq.a}
+                                    </div>
+                                )}
                             </div>
-                            <h3 className="font-bold text-lg text-slate-900 mb-2">Email Support</h3>
-                            <p className="text-slate-500 text-center text-sm">Get response within 24 hours</p>
-                            <p className="text-blue-600 font-medium mt-4">support@mathmetry.com</p>
-                        </div>
-
-                        <div className="p-8 border border-slate-200 rounded-2xl flex flex-col items-center hover:bg-slate-50 transition cursor-pointer group">
-                            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-600 group-hover:text-white transition">
-                                <MessageSquare size={24} />
-                            </div>
-                            <h3 className="font-bold text-lg text-slate-900 mb-2">Live Chat</h3>
-                            <p className="text-slate-500 text-center text-sm">Instant help during work hours</p>
-                            <button className="text-green-600 font-bold mt-4 hover:underline">Start Chat</button>
-                        </div>
-
-                        <div className="p-8 border border-slate-200 rounded-2xl flex flex-col items-center hover:bg-slate-50 transition cursor-pointer group">
-                            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-600 group-hover:text-white transition">
-                                <Phone size={24} />
-                            </div>
-                            <h3 className="font-bold text-lg text-slate-900 mb-2">Phone Support</h3>
-                            <p className="text-slate-500 text-center text-sm">Mon-Fri, 9am - 6pm</p>
-                            <p className="text-purple-600 font-medium mt-4">+1 (800) 123-4567</p>
-                        </div>
+                        ))}
                     </div>
+                </div>
+            </main>
 
-                    <div className="mt-16 bg-slate-900 text-white p-8 rounded-2xl w-full max-w-4xl flex items-center justify-between">
-                        <div>
-                            <h3 className="text-xl font-bold mb-1">Frequently Asked Questions</h3>
-                            <p className="text-slate-400">Find answers to common questions about subscriptions and courses.</p>
-                        </div>
-                        <button className="px-6 py-3 bg-white text-slate-900 rounded-full font-bold hover:bg-slate-100 transition">
-                            Visit FAQ
-                        </button>
-                    </div>
-                </main>
-            </div>
+            <ApplicationFooter />
         </div>
     );
 }

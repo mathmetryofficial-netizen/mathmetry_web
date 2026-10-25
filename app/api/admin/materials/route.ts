@@ -45,7 +45,7 @@ export async function GET() {
     try {
         await dbConnect();
 
-        const materials = await Material.find().sort({ createdAt: -1 });
+        const materials = await Material.find().sort({ createdAt: -1 }).lean();
 
         return NextResponse.json({ materials });
     } catch (error) {

@@ -7,10 +7,20 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: Request) {
     try {
         await dbConnect();
-        const materials = await Material.find({}).sort({ createdAt: -1 });
-        return NextResponse.json(materials);
+        const url = new URL(req.url);
+        const classLevel = url.searchParams.get('class') || url.searchParams.get('classLevel');
+        const board = url.searchParams.get('board');
+
+        const query: Record<string, any> = {};
+        if (classLevel) query.classLevel = classLevel;
+        if (board) query.board = new RegExp(`^${board}$`, 'i');
+
+        const materials = await Material.find(query).sort({ createdAt: -1 }).lean();
+        
+        return NextResponse.json({ materials });
     } catch (error) {
-        return NextResponse.json({ message: 'Error fetching materials' }, { status: 500 });
+        console.error('Error fetching materials:', error);
+        return NextResponse.json({ message: 'Error fetching materials', materials: [] }, { status: 500 });
     }
 }
 
@@ -18,25 +28,31 @@ export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
 
-        if (!session || session.user.role !== 'admin') {
+        if (!session || (session.user as any)?.role !== 'admin') {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
         }
 
-        const { title, subject, classLevel, type, content, fileUrl } = await req.json();
+        const { title, description, subject, classLevel, board, chapter, type, content, fileUrl, previewUrl, price } = await req.json();
 
         await dbConnect();
 
         const material = await Material.create({
             title,
+            description,
             subject,
             classLevel,
-            type,
+            board: board || 'Foundation',
+            chapter: chapter || 'General',
+            type: type || 'pdf',
             content,
-            fileUrl
+            fileUrl,
+            previewUrl,
+            price: price ? parseFloat(price) : 0
         });
 
         return NextResponse.json(material, { status: 201 });
     } catch (error) {
+        console.error('Error creating material:', error);
         return NextResponse.json({ message: 'Error creating material' }, { status: 500 });
     }
 }

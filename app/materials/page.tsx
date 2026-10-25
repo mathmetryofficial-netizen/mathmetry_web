@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useLoading } from '@/components/LoadingProvider';
 import Loader from '@/components/Loader';
 import { motion } from 'framer-motion';
-import { Eye, ShoppingCart } from 'lucide-react';
+import { Eye, ArrowLeft, BookOpen, Lock, FileText, ChevronRight, Sparkles } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import ApplicationFooter from '@/components/ApplicationFooter';
+import AuthPromptModal from '@/components/AuthPromptModal';
 
 interface Material {
     _id: string;
@@ -22,63 +26,88 @@ interface Material {
     createdAt: string;
 }
 
-export default function MaterialsPage() {
-    const [materials, setMaterials] = useState<Material[]>([]);
-    const [loading, setLoading] = useState(true);
+function MaterialsContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { data: session } = useSession();
     const { showLoader, hideLoader } = useLoading();
 
-    // Selection State
-    const [step, setStep] = useState<1 | 2 | 3>(1);
-    const [selectedClass, setSelectedClass] = useState<string | null>(null);
-    const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
+    const [materials, setMaterials] = useState<Material[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [authModalOpen, setAuthModalOpen] = useState(false);
+
+    // Read step state directly from URL search params so browser Back / Forward works naturally
+    const classParam = searchParams.get('class');
+    const boardParam = searchParams.get('board');
+
+    const selectedClass = classParam || null;
+    const selectedBoard = boardParam || null;
+
+    // Determine current step based on URL parameters
+    const step: 1 | 2 | 3 = selectedClass && selectedBoard ? 3 : selectedClass ? 2 : 1;
 
     // Filtered Materials Grouped by Chapter (Step 3)
     const [groupedMaterials, setGroupedMaterials] = useState<Record<string, Material[]>>({});
+    const [hasBoardAccess, setHasBoardAccess] = useState(false);
+    const [checkingAccess, setCheckingAccess] = useState(false);
 
     useEffect(() => {
         fetchMaterials();
     }, []);
 
+    const fetchMaterials = async () => {
+        try {
+            const response = await fetch('/api/materials');
+            if (response.ok) {
+                const data = await response.json();
+                const list = Array.isArray(data) ? data : (data.materials || []);
+                setMaterials(list);
+            }
+        } catch (error) {
+            console.error('Failed to fetch live materials:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Calculate live counts per class level from database
+    const classCounts = materials.reduce((acc, m) => {
+        const key = String(m.classLevel || '').replace(/[^0-9]/g, '');
+        if (key) acc[key] = (acc[key] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
     useEffect(() => {
         if (selectedClass && selectedBoard && materials.length > 0) {
-            const filtered = materials.filter(
-                m => m.classLevel === selectedClass && m.board === selectedBoard
-            );
+            const sClassClean = String(selectedClass).replace(/[^0-9]/g, '');
+
+            const filtered = materials.filter(m => {
+                const mClassClean = String(m.classLevel || '').replace(/[^0-9]/g, '');
+                const mBoardClean = String(m.board || '').toLowerCase();
+                return mClassClean === sClassClean && mBoardClean === selectedBoard.toLowerCase();
+            });
 
             // Group by chapter
             const grouped = filtered.reduce((acc, material) => {
-                const chapter = material.chapter || 'Uncategorized';
+                const chapter = material.chapter || 'General Mathematics';
                 if (!acc[chapter]) acc[chapter] = [];
                 acc[chapter].push(material);
                 return acc;
             }, {} as Record<string, Material[]>);
 
             setGroupedMaterials(grouped);
+        } else {
+            setGroupedMaterials({});
         }
     }, [selectedClass, selectedBoard, materials]);
 
-    const fetchMaterials = async () => {
-        try {
-            const response = await fetch('/api/admin/materials');
-            if (response.ok) {
-                const data = await response.json();
-                setMaterials(data.materials);
-            }
-        } catch (error) {
-            console.error('Failed to fetch materials:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const [hasBoardAccess, setHasBoardAccess] = useState(false);
-    const [checkingAccess, setCheckingAccess] = useState(false);
-
     useEffect(() => {
-        if (selectedClass && selectedBoard) {
+        if (selectedClass && selectedBoard && session) {
             checkBoardAccess();
+        } else {
+            setHasBoardAccess(false);
         }
-    }, [selectedClass, selectedBoard]);
+    }, [selectedClass, selectedBoard, session]);
 
     const checkBoardAccess = async () => {
         setCheckingAccess(true);
@@ -99,7 +128,36 @@ export default function MaterialsPage() {
         }
     };
 
+    const handleSelectClass = (cls: string) => {
+        router.push(`/materials?class=${encodeURIComponent(cls)}`);
+    };
+
+    const handleSelectBoard = (boardName: string) => {
+        if (!selectedClass) return;
+        router.push(`/materials?class=${encodeURIComponent(selectedClass)}&board=${encodeURIComponent(boardName)}`);
+    };
+
+    const goBack = () => {
+        if (step === 3 && selectedClass) {
+            router.push(`/materials?class=${encodeURIComponent(selectedClass)}`);
+        } else if (step === 2) {
+            router.push('/materials');
+        } else {
+            router.push('/');
+        }
+    };
+
+    const resetSelection = () => {
+        router.push('/materials');
+    };
+
     const handleBoardPurchase = async () => {
+        // If not logged in, prompt user with signup/login modal
+        if (!session) {
+            setAuthModalOpen(true);
+            return;
+        }
+
         try {
             showLoader();
             const amount = 999;
@@ -117,22 +175,16 @@ export default function MaterialsPage() {
 
             const order = await orderResponse.json();
 
-            // Load Razorpay script
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.async = true;
-            document.body.appendChild(script);
-
-            script.onload = () => {
+            // Open Razorpay Checkout
+            const openRazorpay = () => {
                 const options = {
                     key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
                     amount: order.amount,
                     currency: order.currency,
-                    name: 'Mathametry',
+                    name: 'Mathmetry',
                     description: `Class ${selectedClass} ${selectedBoard} Board Access`,
                     order_id: order.id,
                     handler: async function (response: any) {
-                        // Complete purchase with HMAC signature verification
                         const purchaseResponse = await fetch('/api/board-access/purchase', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -146,7 +198,7 @@ export default function MaterialsPage() {
                         });
 
                         if (purchaseResponse.ok) {
-                            alert('Payment successful! You now have access to all materials in this board.');
+                            alert('Payment successful! You now have full access to all materials in this board.');
                             setHasBoardAccess(true);
                         } else {
                             alert('Payment verification failed');
@@ -159,13 +211,23 @@ export default function MaterialsPage() {
                         }
                     },
                     theme: {
-                        color: '#6366f1'
+                        color: '#F36A21'
                     }
                 };
 
                 const razorpayInstance = new (window as any).Razorpay(options);
                 razorpayInstance.open();
             };
+
+            if ((window as any).Razorpay) {
+                openRazorpay();
+            } else {
+                const script = document.createElement('script');
+                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                script.async = true;
+                script.onload = openRazorpay;
+                document.body.appendChild(script);
+            }
         } catch (error) {
             console.error('Purchase error:', error);
             alert('Failed to initiate purchase: ' + error);
@@ -173,216 +235,319 @@ export default function MaterialsPage() {
         }
     };
 
-    const resetSelection = () => {
-        setStep(1);
-        setSelectedClass(null);
-        setSelectedBoard(null);
-    };
-
-    const goBack = () => {
-        if (step === 3) setStep(2);
-        else if (step === 2) setStep(1);
-    };
-
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#F7F8FC] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader size="lg" />
-                    <div className="text-xl text-gray-600">Loading materials...</div>
-                </div>
+            <div className="min-h-screen bg-[#FFFCFB] flex items-center justify-center">
+                <Loader size="md" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#F7F8FC] flex justify-center p-4 md:p-8 font-sans">
-            <div className="w-full max-w-[1400px] bg-white rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col min-h-[800px]">
+        <div className="min-h-screen bg-[#FFFCFB] text-[#111111] flex flex-col font-sans selection:bg-[#FFF4EC] selection:text-[#DE5815]">
+            <Navbar />
 
-                <Navbar />
-
-                {/* Header & Navigation */}
-                <div className="px-6 md:px-12 pt-12 pb-8">
-                    <div className="flex items-center gap-4 mb-6">
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                {/* Header & Breadcrumbs with Natural Back Support */}
+                <div className="mb-10">
+                    <div className="flex items-center gap-3 mb-4">
                         {step > 1 && (
                             <button
                                 onClick={goBack}
-                                className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+                                className="p-2 rounded-full border border-[#EAE5E1] bg-white hover:bg-[#F9F5F1] transition-colors cursor-pointer"
+                                aria-label="Go back to previous step"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                                <ArrowLeft size={18} className="text-[#111111]" />
                             </button>
                         )}
-                        <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
-                            {step === 1 && 'Select Class'}
-                            {step === 2 && 'Select Board'}
-                            {step === 3 && 'Study Materials'}
-                        </h1>
+                        <div>
+                            {/* Premium Capital Eyebrow — No capsule badge */}
+                            <span className="text-xs font-bold uppercase tracking-[0.24em] text-[#F36A21] block">
+                                STEP 0{step} OF 03
+                            </span>
+                            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111111] tracking-tight mt-1.5">
+                                {step === 1 && 'Select Your Academic Class'}
+                                {step === 2 && `Select Board for Class ${selectedClass}`}
+                                {step === 3 && `Class ${selectedClass} • ${selectedBoard} Mathematics`}
+                            </h1>
+                        </div>
                     </div>
 
-                    {/* Breadcrumbs */}
-                    {step > 1 && (
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-8">
-                            <span className={step === 1 ? "text-indigo-600 font-bold" : ""}>Class {selectedClass}</span>
-                            <span>/</span>
-                            {selectedBoard && (
-                                <>
-                                    <span className={step === 2 ? "text-indigo-600 font-bold" : ""}>{selectedBoard}</span>
-                                    <span>/</span>
-                                </>
-                            )}
-                            {step === 3 && <span className="text-indigo-600 font-bold">Mathematics</span>}
-                        </div>
-                    )}
+                    {/* Step progress trail */}
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#858585] pt-1">
+                        <button 
+                            type="button"
+                            onClick={() => router.push('/materials')}
+                            className={`hover:underline cursor-pointer ${step >= 1 ? "text-[#F36A21]" : ""}`}
+                        >
+                            01. Choose Class
+                        </button>
+                        <span>•</span>
+                        <button 
+                            type="button"
+                            disabled={!selectedClass}
+                            onClick={() => selectedClass && router.push(`/materials?class=${encodeURIComponent(selectedClass)}`)}
+                            className={`hover:underline disabled:cursor-default ${step >= 2 ? "text-[#F36A21]" : ""}`}
+                        >
+                            02. Choose Board
+                        </button>
+                        <span>•</span>
+                        <span className={step === 3 ? "text-[#F36A21]" : ""}>03. Study Materials</span>
+                    </div>
                 </div>
 
-                {/* Step Content */}
-                <section className="px-6 md:px-12 pb-24 flex-1">
-
-                    {/* Step 1: Class Selection */}
-                    {step === 1 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                            {['7', '8', '9', '10', '11', '12'].map((cls) => (
-                                <motion.div
-                                    key={cls}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    whileHover={{ scale: 1.05 }}
-                                    onClick={() => {
-                                        setSelectedClass(cls);
-                                        setStep(2);
-                                    }}
-                                    className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-[2rem] p-8 aspect-square flex flex-col items-center justify-center cursor-pointer shadow-lg hover:shadow-2xl transition-all"
-                                >
-                                    <div className="text-6xl font-black mb-2">{cls}</div>
-                                    <div className="text-lg font-medium opacity-90">Class</div>
-                                </motion.div>
-                            ))}
+                {/* Step 1: Class Selection */}
+                {step === 1 && (
+                    <div>
+                        <div className="mb-8 max-w-xl">
+                            <p className="text-[#626262] text-sm sm:text-base leading-relaxed">
+                                Select your grade level to browse chapter summaries, formula sheets, and past examination papers.
+                            </p>
                         </div>
-                    )}
 
-                    {/* Step 2: Board Selection */}
-                    {step === 2 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
-                            {['Foundation', 'ICSE', 'CBSE'].map((board) => (
-                                <motion.div
-                                    key={board}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    whileHover={{ scale: 1.05 }}
-                                    onClick={() => {
-                                        setSelectedBoard(board);
-                                        setStep(3);
-                                    }}
-                                    className="bg-white border-2 border-slate-100 rounded-[2rem] p-8 aspect-[4/3] flex flex-col items-center justify-center cursor-pointer shadow-sm hover:border-indigo-500 hover:shadow-xl transition-all group"
-                                >
-                                    <div className="text-3xl font-bold text-slate-800 group-hover:text-indigo-600 mb-2">{board}</div>
-                                    <div className="text-sm text-slate-500">Board</div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Step 3: Material Display */}
-                    {step === 3 && (
-                        <div className="max-w-5xl mx-auto space-y-8">
-                            {/* Board Access Banner */}
-                            {!hasBoardAccess && (
-                                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-[2rem] p-8 shadow-xl">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h2 className="text-2xl font-bold mb-2">Unlock All Materials</h2>
-                                            <p className="text-indigo-100">Get unlimited access to all Class {selectedClass} {selectedBoard} materials</p>
-                                        </div>
-                                        <button
-                                            onClick={handleBoardPurchase}
-                                            disabled={checkingAccess}
-                                            className="bg-white text-indigo-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-indigo-50 transition-all shadow-lg"
-                                        >
-                                            Buy Access - ₹999
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {hasBoardAccess && (
-                                <div className="bg-green-50 border border-green-200 text-green-800 rounded-[2rem] p-6 flex items-center gap-4">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                    <span className="font-semibold">You have full access to all materials in this board</span>
-                                </div>
-                            )}
-
-                            {Object.entries(groupedMaterials).length > 0 ? (
-                                Object.entries(groupedMaterials).map(([chapter, items], idx) => (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                            {['7', '8', '9', '10', '11', '12'].map((cls) => {
+                                const count = classCounts[cls] || 0;
+                                return (
                                     <motion.div
-                                        key={chapter}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: idx * 0.1 }}
-                                        className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden"
+                                        key={cls}
+                                        whileHover={{ y: -4 }}
+                                        onClick={() => handleSelectClass(cls)}
+                                        className="bg-white border border-[#EAE5E1] hover:border-[#F36A21] rounded-2xl p-6 text-center cursor-pointer transition-all shadow-xs hover:shadow-md group flex flex-col items-center justify-center aspect-square"
                                     >
-                                        <div className="bg-slate-50 px-8 py-6 border-b border-slate-100">
-                                            <h2 className="text-xl font-bold text-slate-900">{chapter}</h2>
-                                            <p className="text-sm text-slate-500 mt-1">{items.length} Resources</p>
+                                        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#858585] group-hover:text-[#F36A21]">
+                                            GRADE
+                                        </span>
+                                        <div className="text-4xl sm:text-5xl font-black text-[#111111] my-1 group-hover:text-[#F36A21] transition-colors">
+                                            {cls}
                                         </div>
-                                        <div className="p-6 grid gap-4">
+                                        <span className="text-[11px] font-semibold text-[#626262]">
+                                            {count > 0 ? (
+                                                <span className="text-[#F36A21]">{count} Live {count === 1 ? 'Module' : 'Modules'}</span>
+                                            ) : (
+                                                <span>Mathematics</span>
+                                            )}
+                                        </span>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 2: Board Selection */}
+                {step === 2 && (
+                    <div>
+                        <div className="mb-8 max-w-xl">
+                            <p className="text-[#626262] text-sm sm:text-base leading-relaxed">
+                                Select your board curriculum for Class {selectedClass} to view strictly aligned chapter materials.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
+                            {[
+                                { name: 'Foundation', badge: 'Classes 7–10', desc: 'Core fundamentals in arithmetic, algebra, and geometry.' },
+                                { name: 'ICSE', badge: 'CISCE Syllabus', desc: 'Commercial math, coordinate geometry, step-by-step theorem proofs.' },
+                                { name: 'CBSE', badge: 'NCERT Aligned', desc: 'NCERT exemplar questions, assertion-reason bank, and board patterns.' }
+                            ].map((b) => {
+                                const sClassClean = String(selectedClass).replace(/[^0-9]/g, '');
+                                const boardCount = materials.filter(m => {
+                                    const mClassClean = String(m.classLevel || '').replace(/[^0-9]/g, '');
+                                    const mBoardClean = String(m.board || '').toLowerCase();
+                                    return mClassClean === sClassClean && mBoardClean === b.name.toLowerCase();
+                                }).length;
+
+                                return (
+                                    <motion.div
+                                        key={b.name}
+                                        whileHover={{ y: -4 }}
+                                        onClick={() => handleSelectBoard(b.name)}
+                                        className="bg-white border border-[#EAE5E1] hover:border-[#F36A21] rounded-2xl p-7 cursor-pointer transition-all shadow-xs hover:shadow-md group flex flex-col justify-between"
+                                    >
+                                        <div>
+                                            <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#F36A21] block mb-3">
+                                                {b.badge}
+                                            </span>
+                                            <h3 className="text-2xl font-bold text-[#111111] group-hover:text-[#F36A21] transition-colors mb-2">
+                                                {b.name} Board
+                                            </h3>
+                                            <p className="text-xs text-[#626262] leading-relaxed mb-6">
+                                                {b.desc}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs font-bold text-[#111111] pt-4 border-t border-[#F0EBE7]">
+                                            <span className="text-[#F36A21]">
+                                                {boardCount} Live {boardCount === 1 ? 'Resource' : 'Resources'}
+                                            </span>
+                                            <ChevronRight size={16} className="text-[#F36A21]" />
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 3: Material Display — Live Data Only */}
+                {step === 3 && (
+                    <div className="space-y-8">
+                        {/* Board Access Banner */}
+                        {!hasBoardAccess && (
+                            <div className="bg-[#FFF4EC] border border-[#F36A21]/30 rounded-3xl p-6 sm:p-8 shadow-xs">
+                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                                    <div>
+                                        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#F36A21] mb-2">
+                                            <Sparkles size={14} />
+                                            BOARD ACCESS PASS
+                                        </div>
+                                        <h2 className="text-2xl font-bold text-[#111111] mb-1">
+                                            Unlock Class {selectedClass} {selectedBoard} Materials
+                                        </h2>
+                                        <p className="text-sm text-[#626262]">
+                                            One-time ₹999 payment gives you unrestricted access to all chapter notes and formula sheets for this board.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleBoardPurchase}
+                                        disabled={checkingAccess}
+                                        className="w-full md:w-auto shrink-0 px-8 py-3.5 bg-[#F36A21] hover:bg-[#DE5815] text-white rounded-full font-bold text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center min-h-[44px]"
+                                    >
+                                        Buy Board Access — ₹999
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {hasBoardAccess && (
+                            <div className="bg-[#F0FDF4] border border-[#BBF7D0] text-[#166534] rounded-2xl p-4 sm:p-5 flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                                    ✓
+                                </div>
+                                <span className="font-semibold text-sm">
+                                    Full Access Active: You have unrestricted access to all Class {selectedClass} {selectedBoard} materials.
+                                </span>
+                            </div>
+                        )}
+
+                        {Object.entries(groupedMaterials).length > 0 ? (
+                            <div className="space-y-6">
+                                {Object.entries(groupedMaterials).map(([chapter, items]) => (
+                                    <div
+                                        key={chapter}
+                                        className="bg-white rounded-2xl border border-[#EAE5E1] shadow-xs overflow-hidden"
+                                    >
+                                        <div className="bg-[#F9F5F1] px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#EAE5E1] flex items-center justify-between">
+                                            <div>
+                                                <h2 className="text-sm sm:text-base font-bold text-[#111111]">{chapter}</h2>
+                                                <p className="text-xs text-[#858585] mt-0.5">{items.length} {items.length === 1 ? 'Live Resource' : 'Live Resources'}</p>
+                                            </div>
+                                            <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#626262]">
+                                                CHAPTER NOTES
+                                            </span>
+                                        </div>
+
+                                        <div className="divide-y divide-[#F0EBE7]">
                                             {items.map((material) => (
-                                                <div key={material._id} className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                                                            {material.type === 'pdf' ? (
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
-                                                            ) : (
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect width="15" height="14" x="1" y="5" rx="2" ry="2" /></svg>
-                                                            )}
+                                                <div
+                                                    key={material._id}
+                                                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#FFFCFB] transition-colors"
+                                                >
+                                                    <div className="flex items-start gap-3.5">
+                                                        <div className="w-10 h-10 rounded-xl bg-[#FFF4EC] text-[#F36A21] flex items-center justify-center shrink-0 mt-0.5">
+                                                            <FileText size={20} />
                                                         </div>
                                                         <div>
-                                                            <h3 className="font-semibold text-slate-900">{material.title}</h3>
-                                                            <p className="text-sm text-slate-500">{material.type} • ₹{material.price}</p>
+                                                            <h3 className="text-sm font-bold text-[#111111]">{material.title}</h3>
+                                                            {material.description && (
+                                                                <p className="text-xs text-[#626262] mt-0.5 max-w-xl">{material.description}</p>
+                                                            )}
+                                                            <div className="flex items-center gap-3 text-[11px] text-[#858585] mt-1">
+                                                                <span className="uppercase font-semibold text-[#111111]">{material.type}</span>
+                                                                <span>•</span>
+                                                                <span>Included in Board Pass</span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <a
-                                                            href={hasBoardAccess ? `/materials/view/${material._id}` : '#'}
-                                                            className={`px-4 py-3 rounded-full text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
-                                                                hasBoardAccess 
-                                                                    ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                                                                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                                            }`}
-                                                            onClick={(e) => {
-                                                                if (!hasBoardAccess) {
-                                                                    e.preventDefault();
-                                                                    alert('Please purchase board access to view materials');
-                                                                }
-                                                            }}
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
-                                                            {hasBoardAccess ? 'View' : 'Locked'}
-                                                        </a>
+
+                                                    <div className="flex items-center gap-3 sm:self-center w-full sm:w-auto">
+                                                        {hasBoardAccess ? (
+                                                            <a
+                                                                href={`/materials/view/${material._id}`}
+                                                                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#111111] hover:bg-[#F36A21] text-white rounded-full font-semibold text-xs transition-colors shadow-xs min-h-[44px]"
+                                                            >
+                                                                <Eye size={14} />
+                                                                <span>Open Document</span>
+                                                            </a>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleBoardPurchase}
+                                                                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#F9F5F1] text-[#858585] border border-[#EAE5E1] rounded-full font-medium text-xs cursor-pointer hover:bg-[#FFF4EC] hover:text-[#F36A21] transition-colors min-h-[44px]"
+                                                            >
+                                                                <Lock size={13} />
+                                                                <span>Locked • Pass Required</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-                                    </motion.div>
-                                ))
-                            ) : (
-                                <div className="text-center py-20">
-                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
                                     </div>
-                                    <h3 className="text-lg font-bold text-slate-900">No materials found</h3>
-                                    <p className="text-slate-500 mt-2">Try selecting a different class or board.</p>
-                                    <button
-                                        onClick={resetSelection}
-                                        className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-full font-medium hover:bg-indigo-700"
-                                    >
-                                        Start Over
-                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            /* Live Database Empty State — When 0 materials exist for this class & board */
+                            <div className="text-center py-16 bg-white border border-[#EAE5E1] rounded-3xl p-8 max-w-xl mx-auto">
+                                <div className="w-14 h-14 bg-[#FFF4EC] text-[#F36A21] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xs">
+                                    <BookOpen size={24} />
                                 </div>
-                            )}
-                        </div>
-                    )}
-                </section>
-            </div>
+                                <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#F36A21] block mb-2">
+                                    LIVE INVENTORY
+                                </span>
+                                <h3 className="text-xl font-bold text-[#111111]">
+                                    No Materials Uploaded for Class {selectedClass} {selectedBoard}
+                                </h3>
+                                <p className="text-xs sm:text-sm text-[#626262] mt-2 max-w-md mx-auto leading-relaxed">
+                                    Resources for Class {selectedClass} ({selectedBoard} Board) will appear here once published. In the meantime, you can explore materials for other grades.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={resetSelection}
+                                    className="mt-6 px-7 py-3 bg-[#111111] hover:bg-[#F36A21] text-white rounded-full text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                                >
+                                    Select Another Class
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </main>
+
+            <ApplicationFooter />
+
+            {/* Auth Verification Popup */}
+            <AuthPromptModal
+                isOpen={authModalOpen}
+                onClose={() => setAuthModalOpen(false)}
+                title="Account Required to Unlock"
+                description={`To purchase the Class ${selectedClass || ''} ${selectedBoard || ''} Board Pass and access watermarked chapter notes, please sign in or register.`}
+                itemName={`Class ${selectedClass} ${selectedBoard} Lifetime Pass`}
+                price={999}
+                callbackUrl={`/materials?class=${selectedClass || ''}&board=${selectedBoard || ''}`}
+            />
         </div>
+    );
+}
+
+export default function MaterialsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#FFFCFB] flex items-center justify-center">
+                <Loader size="md" />
+            </div>
+        }>
+            <MaterialsContent />
+        </Suspense>
     );
 }

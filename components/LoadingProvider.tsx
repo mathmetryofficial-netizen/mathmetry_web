@@ -38,10 +38,10 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) =>
     <LoadingContext.Provider value={{ isLoading, setLoading, showLoader, hideLoader }}>
       {children}
       {isLoading && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4">
-            <Loader size="lg" />
-            <p className="text-gray-600 font-medium">Loading...</p>
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-50 flex items-center justify-center transition-all duration-150">
+          <div className="bg-white rounded-2xl shadow-xl p-6 flex flex-col items-center gap-3 border border-slate-100">
+            <Loader size="md" />
+            <p className="text-slate-600 text-sm font-medium">Please wait...</p>
           </div>
         </div>
       )}

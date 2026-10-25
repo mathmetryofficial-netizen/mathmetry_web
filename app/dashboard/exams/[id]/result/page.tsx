@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, Award } from 'lucide-react';
 
 export default function ExamResultPage() {
     const [result, setResult] = useState<any>(null);
@@ -9,56 +10,120 @@ export default function ExamResultPage() {
     useEffect(() => {
         const stored = localStorage.getItem('lastExamResult');
         if (stored) {
-            setResult(JSON.parse(stored));
+            try {
+                setResult(JSON.parse(stored));
+            } catch {
+                setResult(null);
+            }
         }
     }, []);
 
-    if (!result) return <div className="p-10 text-center">No result found.</div>;
+    if (!result) {
+        return (
+            <div className="py-20 text-center max-w-md mx-auto">
+                <div className="p-8 bg-white rounded-2xl border border-[#EAE5E1]">
+                    <h2 className="text-lg font-bold text-[#111111] mb-2">No Examination Record Found</h2>
+                    <p className="text-xs text-[#626262] mb-6">
+                        Results are stored per active assessment session. Please select an exam from your dashboard.
+                    </p>
+                    <Link
+                        href="/dashboard/exams"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#111111] text-white hover:bg-[#F36A21] rounded-xl text-xs font-semibold transition"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Return to Assessments</span>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     const percentage = Math.round((result.score / result.totalMarks) * 100);
+    const correctCount = result.results?.filter((r: any) => r.isCorrect).length || 0;
+    const wrongCount = result.results?.filter((r: any) => !r.isCorrect && r.selectedOption !== undefined).length || 0;
+    const skippedCount = result.results?.filter((r: any) => r.selectedOption === undefined).length || 0;
+
+    const accentColor = percentage >= 75 ? '#F36A21' : percentage >= 40 ? '#f59e0b' : '#ef4444';
 
     return (
-        <div className="max-w-2xl mx-auto py-10 text-center space-y-8">
-            <div className="p-8 bg-white rounded-2xl shadow-lg border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-                <div className="w-32 h-32 mx-auto rounded-full flex items-center justify-center bg-slate-50 dark:bg-slate-900 mb-6 relative">
-                    <svg className="w-full h-full text-slate-200 transform -rotate-90" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" />
+        <div className="max-w-2xl mx-auto py-8 space-y-8">
+            <div className="p-8 sm:p-10 bg-white rounded-2xl border border-[#EAE5E1] shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-center">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#F36A21]">Assessment Completed</span>
+                
+                {/* Circular Score Gauge */}
+                <div className="w-36 h-36 mx-auto rounded-full flex items-center justify-center bg-[#FFFCFB] my-6 relative border border-[#F0EBE7]">
+                    <svg className="w-full h-full transform -rotate-90 p-2" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="42" fill="none" stroke="#F0EBE7" strokeWidth="8" />
                         <circle
-                            cx="50" cy="50" r="45" fill="none" stroke={percentage >= 70 ? '#22c55e' : percentage >= 40 ? '#eab308' : '#ef4444'} strokeWidth="8"
-                            strokeDasharray={`${percentage * 2.83} 283`}
+                            cx="50"
+                            cy="50"
+                            r="42"
+                            fill="none"
+                            stroke={accentColor}
+                            strokeWidth="8"
+                            strokeDasharray={`${percentage * 2.64} 264`}
                             strokeLinecap="round"
                         />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold">{percentage}%</span>
+                        <span className="text-3xl font-extrabold text-[#111111]">{percentage}%</span>
+                        <span className="text-[11px] font-semibold text-[#858585] uppercase tracking-wider mt-0.5">Score</span>
                     </div>
                 </div>
 
-                <h1 className="text-3xl font-bold mb-2">
-                    {percentage >= 70 ? 'Excellent Job!' : percentage >= 40 ? 'Good Effort!' : 'Keep Practicing'}
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#111111] mb-2 tracking-tight">
+                    {percentage >= 75 ? 'Outstanding Performance!' : percentage >= 40 ? 'Good Effort, Keep Practicing!' : 'Needs Rigorous Revision'}
                 </h1>
-                <p className="text-slate-500 mb-8 dark:text-slate-400">
-                    You scored <span className="font-bold text-primary">{result.score}</span> out of <span className="font-bold">{result.totalMarks}</span>
+                
+                <p className="text-sm text-[#626262] mb-8">
+                    You secured <span className="font-bold text-[#111111]">{result.score}</span> out of{' '}
+                    <span className="font-bold text-[#111111]">{result.totalMarks} marks</span>.
                 </p>
 
-                <div className="grid grid-cols-3 gap-4 mb-8">
-                    <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-700/50">
-                        <div className="text-2xl font-bold text-green-600">{result.results.filter((r: any) => r.isCorrect).length}</div>
-                        <div className="text-xs font-semibold text-slate-500 uppercase">Correct</div>
+                {/* Score Breakdown Cards */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8 text-left">
+                    <div className="p-4 bg-[#F9F5F1] rounded-xl border border-[#EAE5E1]">
+                        <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Correct</span>
+                        </div>
+                        <div className="text-2xl font-extrabold text-[#111111]">{correctCount}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-700/50">
-                        <div className="text-2xl font-bold text-red-500">{result.results.filter((r: any) => !r.isCorrect && r.selectedOption !== undefined).length}</div>
-                        <div className="text-xs font-semibold text-slate-500 uppercase">Wrong</div>
+
+                    <div className="p-4 bg-[#F9F5F1] rounded-xl border border-[#EAE5E1]">
+                        <div className="flex items-center gap-1.5 text-rose-600 mb-1">
+                            <XCircle className="w-4 h-4" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Wrong</span>
+                        </div>
+                        <div className="text-2xl font-extrabold text-[#111111]">{wrongCount}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-700/50">
-                        <div className="text-2xl font-bold text-slate-500">{result.results.filter((r: any) => r.selectedOption === undefined).length}</div>
-                        <div className="text-xs font-semibold text-slate-500 uppercase">Skipped</div>
+
+                    <div className="p-4 bg-[#F9F5F1] rounded-xl border border-[#EAE5E1]">
+                        <div className="flex items-center gap-1.5 text-[#858585] mb-1">
+                            <MinusCircle className="w-4 h-4" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Skipped</span>
+                        </div>
+                        <div className="text-2xl font-extrabold text-[#111111]">{skippedCount}</div>
                     </div>
                 </div>
 
-                <Link href="/dashboard/exams" className="inline-block px-8 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition shadow-md">
-                    Back to Exams
-                </Link>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <Link
+                        href="/dashboard/exams"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#111111] text-white rounded-xl text-xs font-bold hover:bg-[#F36A21] transition shadow-sm"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Back to Assessments</span>
+                    </Link>
+
+                    <Link
+                        href="/dashboard/performance"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-[#111111] border border-[#EAE5E1] rounded-xl text-xs font-bold hover:bg-[#F9F5F1] transition"
+                    >
+                        <Award className="w-3.5 h-3.5 text-[#F36A21]" />
+                        <span>View Analytics</span>
+                    </Link>
+                </div>
             </div>
         </div>
     );

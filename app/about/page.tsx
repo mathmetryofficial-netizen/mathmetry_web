@@ -1,87 +1,108 @@
+'use client';
+
 import Link from "next/link";
-import Image from "next/image";
+import Navbar from "@/components/Navbar";
+import ApplicationFooter from "@/components/ApplicationFooter";
+import SectionHeading from "@/components/SectionHeading";
+import { CheckCircle2, Award, BookOpen, Heart, Target, Users } from "lucide-react";
 
 export default function AboutPage() {
     return (
-        <div className="min-h-screen bg-[#F7F8FC] flex justify-center p-4 md:p-8 font-sans">
-            <div className="w-full max-w-[1400px] bg-white rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col min-h-[90vh]">
+        <div className="min-h-screen bg-[#FFFCFB] text-[#111111] flex flex-col font-sans selection:bg-[#FFF4EC] selection:text-[#DE5815]">
+            <Navbar />
 
-                <nav className="flex items-center justify-between px-8 py-6 md:px-12 border-b border-slate-100">
-                    <div className="flex-1 flex items-center justify-start">
-                        <Link href="/" className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                            <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white">M</div>
-                            Mathmetry
-                        </Link>
-                    </div>
-                    <div className="hidden md:flex flex-1 items-center justify-center gap-8 font-medium text-slate-500">
-                        <Link href="/" className="hover:text-slate-900 transition">Home</Link>
-                        <Link href="/courses" className="hover:text-slate-900 transition">Courses</Link>
-                        <Link href="/services" className="hover:text-slate-900 transition">Services</Link>
-                        <Link href="/support" className="hover:text-slate-900 transition">Support</Link>
-                        <Link href="/about" className="text-slate-900 font-bold">About</Link>
-                    </div>
-                    <div className="flex-1 flex items-center justify-end">
-                        <Link href="/auth/signup" className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm hover:scale-105 transition-transform">
-                            Start
-                        </Link>
-                    </div>
-                </nav>
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                {/* Hero / Mission */}
+                <div className="max-w-3xl mb-16">
+                    <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#F36A21] block mb-3">
+                        OUR MISSION
+                    </span>
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#111111] tracking-tight leading-tight mb-4">
+                        Making Mathematics <br />
+                        <span className="text-[#F36A21]">Structured, Clear & Scoring.</span>
+                    </h1>
+                    <div className="w-12 h-1 bg-[#F36A21] rounded-full mb-6" />
+                    <p className="text-lg text-[#626262] leading-relaxed">
+                        Mathmetry was established to solve a widespread challenge: school students are often taught rote formulas without understanding method layout, causing them to lose critical marks in school board examinations. We bridge the gap between deep concept mastery and board rubric presentation.
+                    </p>
+                </div>
 
-                <main className="flex-1 p-8 md:p-12">
-                    <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
-                        <div>
-                            <h1 className="text-5xl font-extrabold text-slate-900 mb-6">Empowering the Next Generation of Mathematicians</h1>
-                            <p className="text-lg text-slate-600 mb-6 leading-relaxed">
-                                Mathmetry was founded with a single mission: to make high-quality mathematics education accessible, engaging, and effective for everyone.
-                            </p>
-                            <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                                We believe that math is not just about numbers; it's about critical thinking, problem-solving, and understanding the world around us. Our platform combines cutting-edge technology with expert pedagogy to create a learning experience like no other.
-                            </p>
-                            <div className="flex gap-4">
-                                <div className="flex flex-col">
-                                    <span className="text-3xl font-bold text-indigo-600">10k+</span>
-                                    <span className="text-slate-500">Students</span>
+                {/* Key Numbers */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
+                    {[
+                        { label: "Active Students", value: "10,000+", sub: "Across India & abroad" },
+                        { label: "Curated Resources", value: "500+", sub: "Chapter notes & tests" },
+                        { label: "Top Board Score", value: "98%", sub: "Class 10 & 12 Boards" },
+                        { label: "Curriculum Boards", value: "3 Boards", sub: "Foundation, ICSE, CBSE" }
+                    ].map((stat, idx) => (
+                        <div key={idx} className="bg-white border border-[#EAE5E1] rounded-2xl p-6 shadow-xs">
+                            <div className="text-3xl sm:text-4xl font-black text-[#111111] mb-1">{stat.value}</div>
+                            <div className="text-sm font-bold text-[#F36A21] mb-1">{stat.label}</div>
+                            <div className="text-xs text-[#858585]">{stat.sub}</div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Core Principles */}
+                <div className="mb-20">
+                    <SectionHeading
+                        eyebrow="Our Approach"
+                        title="How We Help Students"
+                        highlight="Score Higher."
+                        subtitle="Our materials are created to help students understand concepts clearly and write complete solutions in exams."
+                        align="left"
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {[
+                            {
+                                icon: Target,
+                                title: "Board Presentation Focus",
+                                desc: "Every worked problem and derivation demonstrates the exact step-by-step working required by examiners to award full marks."
+                            },
+                            {
+                                icon: BookOpen,
+                                title: "Clear, Chapter-Wise Notes",
+                                desc: "Our chapter notes focus on core concepts, standard theorems, and formula applications so you can revise without textbook clutter."
+                            },
+                            {
+                                icon: Heart,
+                                title: "Affordable One-Time Access",
+                                desc: "No monthly recurring fees. A single ₹999 pass provides complete, lifetime access to all study materials for your board."
+                            }
+                        ].map((principle, idx) => {
+                            const IconComponent = principle.icon;
+                            return (
+                                <div key={idx} className="card-editorial p-8">
+                                    <div className="w-12 h-12 rounded-xl bg-[#FFF4EC] text-[#F36A21] flex items-center justify-center mb-6">
+                                        <IconComponent size={22} />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-[#111111] mb-2">{principle.title}</h3>
+                                    <p className="text-sm text-[#626262] leading-relaxed">{principle.desc}</p>
                                 </div>
-                                <div className="w-px bg-slate-200"></div>
-                                <div className="flex flex-col">
-                                    <span className="text-3xl font-bold text-indigo-600">500+</span>
-                                    <span className="text-slate-500">Lessons</span>
-                                </div>
-                                <div className="w-px bg-slate-200"></div>
-                                <div className="flex flex-col">
-                                    <span className="text-3xl font-bold text-indigo-600">4.9/5</span>
-                                    <span className="text-slate-500">Rating</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="relative h-[500px] bg-slate-100 rounded-[2.5rem] overflow-hidden">
-                            {/* Placeholder for About Image */}
-                            <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                                About Illustration / Team Photo
-                            </div>
-                        </div>
+                            );
+                        })}
                     </div>
+                </div>
 
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold text-slate-900 mb-4">Our Core Values</h2>
-                    </div>
+                {/* Call to Action */}
+                <div className="bg-[#F9F5F1] border border-[#EAE5E1] rounded-3xl p-8 sm:p-12 text-center">
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111111] mb-3">
+                        Experience Mathmetry for Yourself
+                    </h2>
+                    <p className="text-sm sm:text-base text-[#626262] max-w-lg mx-auto mb-6">
+                        Explore chapter resources for your class or start learning with our structured curriculum.
+                    </p>
+                    <Link
+                        href="/materials"
+                        className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#F36A21] hover:bg-[#DE5815] text-white rounded-full font-bold text-sm shadow-xs transition-colors"
+                    >
+                        <span>Browse Study Materials</span>
+                    </Link>
+                </div>
+            </main>
 
-                    <div className="grid sm:grid-cols-3 gap-6">
-                        <div className="bg-slate-50 p-8 rounded-2xl">
-                            <h3 className="font-bold text-xl text-slate-900 mb-3">Excellence</h3>
-                            <p className="text-slate-600">We strive for the highest quality in everything we teach and build.</p>
-                        </div>
-                        <div className="bg-slate-50 p-8 rounded-2xl">
-                            <h3 className="font-bold text-xl text-slate-900 mb-3">Innovation</h3>
-                            <p className="text-slate-600">Using technology to make learning smarter, faster, and more fun.</p>
-                        </div>
-                        <div className="bg-slate-50 p-8 rounded-2xl">
-                            <h3 className="font-bold text-xl text-slate-900 mb-3">Community</h3>
-                            <p className="text-slate-600">Building a supportive environment where every student can thrive.</p>
-                        </div>
-                    </div>
-                </main>
-            </div>
+            <ApplicationFooter />
         </div>
     );
 }

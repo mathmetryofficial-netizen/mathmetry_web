@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Clock, CheckCircle2, ChevronLeft, ChevronRight, Send, AlertTriangle } from 'lucide-react';
 
 interface Question {
     _id: string;
@@ -17,14 +18,7 @@ interface Exam {
     questions: Question[];
 }
 
-export default function TakeExamPage({ params }: { params: { id: string } }) {
-    // Unwrap params using React.use() if needed in v15+, but in standard app router params is a promise in recent versions.
-    // The user environment is Next.js 16.1.4 as seen in package.json earlier.
-    // params is a Promise in Next.js 15+. I need to await it or use `use` hook.
-    // Since this is a client component, I can use `use` from React or just await inside useEffect if I didn't need it immediately, but standard way now is: 
-    // `const { id } = React.use(params);` if I pass it as prop, but `page.tsx` props are async.
-    // Actually, easiest way is to treat `params` as a Promise.
-
+export default function TakeExamPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
     const [exam, setExam] = useState<Exam | null>(null);
     const [loading, setLoading] = useState(true);
     const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -33,15 +27,14 @@ export default function TakeExamPage({ params }: { params: { id: string } }) {
     const [unwrappedParams, setUnwrappedParams] = useState<{ id: string } | null>(null);
 
     const router = useRouter();
-    const timerRef = useRef<NodeJS.Timeout>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        // Unwrap params
-        Promise.resolve(params).then(p => setUnwrappedParams(p));
+        Promise.resolve(params).then((p) => setUnwrappedParams(p));
     }, [params]);
 
     useEffect(() => {
-        if (!unwrappedParams) return;
+        if (!unwrappedParams?.id) return;
 
         fetch(`/api/exams/${unwrappedParams.id}`)
             .then((res) => {
@@ -59,23 +52,9 @@ export default function TakeExamPage({ params }: { params: { id: string } }) {
             });
     }, [unwrappedParams, router]);
 
-    useEffect(() => {
-        if (timeLeft > 0 && !loading) {
-            timerRef.current = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-        } else if (timeLeft === 0 && !loading && exam) {
-            handleSubmit();
-        }
-        return () => clearTimeout(timerRef.current!);
-    }, [timeLeft, loading, exam]);
-
-    const handleOptionSelect = (questionId: string, optionIndex: number) => {
-        setAnswers({ ...answers, [questionId]: optionIndex });
-    };
-
     const handleSubmit = async () => {
         if (!exam || !unwrappedParams) return;
 
-        // Clear timer
         if (timerRef.current) clearTimeout(timerRef.current);
 
         setLoading(true);
@@ -87,14 +66,28 @@ export default function TakeExamPage({ params }: { params: { id: string } }) {
             });
 
             const result = await res.json();
-            // Store result in local storage or state management to show in the next page
             localStorage.setItem('lastExamResult', JSON.stringify(result));
-            router.push(`/dashboard/exams/${unwrappedParams.id}/result`); // I need to create this page
+            router.push(`/dashboard/exams/${unwrappedParams.id}/result`);
         } catch (error) {
             console.error(error);
             alert('Submission failed');
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        if (timeLeft > 0 && !loading) {
+            timerRef.current = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
+        } else if (timeLeft === 0 && !loading && exam) {
+            handleSubmit();
+        }
+        return () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+        };
+    }, [timeLeft, loading, exam]);
+
+    const handleOptionSelect = (questionId: string, optionIndex: number) => {
+        setAnswers({ ...answers, [questionId]: optionIndex });
     };
 
     const formatTime = (seconds: number) => {
@@ -103,103 +96,172 @@ export default function TakeExamPage({ params }: { params: { id: string } }) {
         return `${min}:${sec < 10 ? '0' : ''}${sec}`;
     };
 
-    if (loading || !exam) return <div className="p-10 text-center">Loading Exam...</div>;
+    if (loading || !exam) {
+        return (
+            <div className="py-24 text-center">
+                <div className="w-9 h-9 border-2 border-[#F36A21] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-sm font-semibold text-[#111111]">Loading Examination Environment...</p>
+                <p className="text-xs text-[#626262] mt-1">Please do not refresh or navigate away.</p>
+            </div>
+        );
+    }
 
     const currentQ = exam.questions[currentQuestionIndex];
+    const isUrgent = timeLeft < 300;
 
     return (
-        <div className="max-w-4xl mx-auto pb-20">
-            {/* Header with Timer */}
-            <div className="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 -mx-4 lg:-mx-10 mb-6 flex justify-between items-center shadow-sm">
-                <h1 className="text-xl font-bold truncate pr-4">{exam.title}</h1>
-                <div className={`px-4 py-2 rounded-lg font-mono font-bold text-lg ${timeLeft < 300 ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'}`}>
-                    {formatTime(timeLeft)}
+        <div className="max-w-5xl mx-auto pb-20">
+            {/* Top Exam Header with Real-Time Clock */}
+            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border border-[#EAE5E1] rounded-2xl p-3 sm:p-4 lg:p-5 mb-6 sm:mb-8 flex justify-between items-center shadow-sm gap-2">
+                <div className="min-w-0 pr-2">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#F36A21]">Live Examination</span>
+                    <h1 className="text-sm sm:text-base md:text-lg font-bold text-[#111111] truncate mt-0.5">
+                        {exam.title}
+                    </h1>
+                </div>
+
+                <div
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-mono font-bold text-sm sm:text-base shrink-0 transition-colors ${
+                        isUrgent
+                            ? 'bg-red-50 text-red-600 border border-red-200 animate-pulse'
+                            : 'bg-[#FFF4EC] text-[#F36A21] border border-[#F36A21]/20'
+                    }`}
+                >
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                    <span>{formatTime(timeLeft)}</span>
                 </div>
             </div>
 
             <div className="grid gap-8 lg:grid-cols-3">
-                {/* Question Area */}
+                {/* Main Question Surface */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm dark:bg-slate-800 dark:border-slate-700 min-h-[400px]">
-                        <div className="flex justify-between mb-4">
-                            <span className="text-sm font-semibold text-slate-500">Question {currentQuestionIndex + 1} of {exam.questions.length}</span>
-                            <span className="text-sm font-semibold text-slate-500">{currentQ.marks} Marks</span>
+                    <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#EAE5E1] shadow-[0_2px_8px_rgba(0,0,0,0.02)] min-h-[420px] flex flex-col">
+                        <div className="flex justify-between items-center pb-4 mb-6 border-b border-[#F0EBE7]">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[#F36A21]">
+                                Question {currentQuestionIndex + 1} of {exam.questions.length}
+                            </span>
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#F9F5F1] text-[#626262] border border-[#EAE5E1]">
+                                {currentQ.marks} {currentQ.marks === 1 ? 'Mark' : 'Marks'}
+                            </span>
                         </div>
 
-                        <p className="text-lg font-medium mb-8">{currentQ.text}</p>
+                        <p className="text-base sm:text-lg font-semibold text-[#111111] mb-8 leading-relaxed">
+                            {currentQ.text}
+                        </p>
 
-                        <div className="space-y-3">
-                            {currentQ.options.map((option, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleOptionSelect(currentQ._id, idx)}
-                                    className={`w-full text-left p-4 rounded-lg border transition-all ${answers[currentQ._id] === idx
-                                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                                            : 'border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700'
+                        <div className="space-y-3 mt-auto">
+                            {currentQ.options.map((option, idx) => {
+                                const isSelected = answers[currentQ._id] === idx;
+                                return (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => handleOptionSelect(currentQ._id, idx)}
+                                        className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-3.5 ${
+                                            isSelected
+                                                ? 'border-[#F36A21] bg-[#FFF4EC]/60 ring-1 ring-[#F36A21] text-[#111111]'
+                                                : 'border-[#EAE5E1] hover:border-[#F36A21]/30 hover:bg-[#F9F5F1] text-[#111111]'
                                         }`}
-                                >
-                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-slate-300 mr-3 text-sm font-medium dark:border-slate-500">
-                                        {String.fromCharCode(65 + idx)}
-                                    </span>
-                                    {option}
-                                </button>
-                            ))}
+                                    >
+                                        <span
+                                            className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold shrink-0 transition-colors ${
+                                                isSelected
+                                                    ? 'bg-[#F36A21] text-white'
+                                                    : 'bg-[#F9F5F1] text-[#626262] border border-[#EAE5E1]'
+                                            }`}
+                                        >
+                                            {String.fromCharCode(65 + idx)}
+                                        </span>
+                                        <span className="text-sm font-medium leading-relaxed pt-0.5">{option}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    {/* Navigation Buttons */}
+                    <div className="flex justify-between items-center gap-3">
                         <button
+                            type="button"
                             disabled={currentQuestionIndex === 0}
-                            onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
-                            className="px-6 py-2 rounded-lg border border-slate-300 font-medium hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-800"
+                            onClick={() => setCurrentQuestionIndex((prev) => prev - 1)}
+                            className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-xl border border-[#EAE5E1] font-semibold text-xs text-[#111111] hover:bg-[#F9F5F1] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
                         >
-                            Previous
+                            <ChevronLeft className="w-4 h-4" />
+                            <span>Previous</span>
                         </button>
 
                         {currentQuestionIndex === exam.questions.length - 1 ? (
                             <button
+                                type="button"
                                 onClick={handleSubmit}
-                                className="px-8 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-md transition"
+                                className="min-h-[44px] inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-2.5 bg-[#F36A21] text-white rounded-xl font-bold text-xs hover:bg-[#DE5815] shadow-sm transition cursor-pointer"
                             >
-                                Submit Exam
+                                <span>Submit Assessment</span>
+                                <Send className="w-3.5 h-3.5" />
                             </button>
                         ) : (
                             <button
-                                onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
-                                className="px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition"
+                                type="button"
+                                onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}
+                                className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-5 sm:px-6 py-2.5 bg-[#111111] text-white rounded-xl font-semibold text-xs hover:bg-[#F36A21] shadow-sm transition cursor-pointer"
                             >
-                                Next Question
+                                <span>Next Question</span>
+                                <ChevronRight className="w-4 h-4" />
                             </button>
                         )}
                     </div>
                 </div>
 
-                {/* Navigation Panel */}
+                {/* Question Palette Sidebar */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm sticky top-24 dark:bg-slate-800 dark:border-slate-700">
-                        <h3 className="font-bold mb-4">Question Palette</h3>
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#EAE5E1] shadow-sm sticky top-24">
+                        <h3 className="font-bold text-sm text-[#111111] mb-1">Question Palette</h3>
+                        <p className="text-xs text-[#626262] mb-5">Click any number to jump directly</p>
+
                         <div className="grid grid-cols-5 gap-2">
-                            {exam.questions.map((q, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setCurrentQuestionIndex(idx)}
-                                    className={`aspect-square rounded-md flex items-center justify-center text-sm font-medium transition-colors ${currentQuestionIndex === idx ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-800' : ''
-                                        } ${answers[q._id] !== undefined
-                                            ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300'
+                            {exam.questions.map((q, idx) => {
+                                const isCurrent = currentQuestionIndex === idx;
+                                const isAnswered = answers[q._id] !== undefined;
+
+                                return (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => setCurrentQuestionIndex(idx)}
+                                        className={`aspect-square min-h-[40px] sm:min-h-[44px] rounded-xl flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
+                                            isCurrent ? 'ring-2 ring-[#F36A21] ring-offset-2' : ''
+                                        } ${
+                                            isAnswered
+                                                ? 'bg-[#FFF4EC] text-[#F36A21] border border-[#F36A21]/30 font-extrabold'
+                                                : 'bg-[#F9F5F1] text-[#626262] hover:bg-[#EAE5E1]'
                                         }`}
-                                >
-                                    {idx + 1}
-                                </button>
-                            ))}
+                                    >
+                                        {idx + 1}
+                                    </button>
+                                );
+                            })}
                         </div>
-                        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
-                            <div className="flex items-center gap-2 mb-2 text-sm text-slate-600 dark:text-slate-400">
-                                <div className="w-3 h-3 bg-indigo-100 rounded-sm"></div> Answered
+
+                        <div className="mt-8 pt-5 border-t border-[#F0EBE7] space-y-2 text-xs text-[#626262]">
+                            <div className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 rounded bg-[#FFF4EC] border border-[#F36A21]/30 inline-block" />
+                                <span>Answered ({Object.keys(answers).length})</span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                                <div className="w-3 h-3 bg-slate-100 rounded-sm"></div> Not Answered
+                            <div className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 rounded bg-[#F9F5F1] inline-block" />
+                                <span>Unanswered ({exam.questions.length - Object.keys(answers).length})</span>
                             </div>
+                        </div>
+
+                        <div className="mt-6 pt-5 border-t border-[#F0EBE7]">
+                            <button
+                                type="button"
+                                onClick={handleSubmit}
+                                className="w-full py-2.5 px-4 bg-[#111111] text-white hover:bg-[#F36A21] rounded-xl text-xs font-bold transition"
+                            >
+                                Finalize & Submit
+                            </button>
                         </div>
                     </div>
                 </div>

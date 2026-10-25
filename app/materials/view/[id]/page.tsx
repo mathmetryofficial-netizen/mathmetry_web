@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useLoading } from '@/components/LoadingProvider';
 import { useSession } from 'next-auth/react';
+import { ArrowLeft, Shield, Lock } from 'lucide-react';
 
 export default function SecureViewerPage() {
     const params = useParams();
@@ -72,10 +73,10 @@ export default function SecureViewerPage() {
                 e.preventDefault();
             }
 
-            // Detect Screenshot keys (Cmd+Shift+3/4/5 on Mac, PrtScn on Windows is harder to catch but focus loss handles it mostly)
+            // Detect Screenshot keys (Cmd+Shift+3/4/5 on Mac, PrintScreen on Windows)
             if ((e.metaKey && e.shiftKey) || e.key === 'PrintScreen') {
                 setIsBlurred(true);
-                setTimeout(() => setIsBlurred(false), 2000); // Unblur after 2s
+                setTimeout(() => setIsBlurred(false), 2000);
             }
         };
         document.addEventListener('keydown', handleKeyDown);
@@ -90,8 +91,6 @@ export default function SecureViewerPage() {
 
     const getDriveEmbedUrl = (url: string) => {
         if (!url) return '';
-        // Extract ID from Google Drive URL
-        // Supports: /file/d/ID/view, /open?id=ID
         let id = '';
         const regex1 = /\/file\/d\/([a-zA-Z0-9_-]+)/;
         const regex2 = /id=([a-zA-Z0-9_-]+)/;
@@ -109,29 +108,33 @@ export default function SecureViewerPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 flex flex-col font-sans select-none overflow-hidden">
-            {/* Navbar (Dark Mode) */}
-            <div className="bg-slate-900 border-b border-slate-800">
-                <Navbar />
-            </div>
-
-            <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
-                {/* Header */}
-                <div className="w-full max-w-6xl flex justify-between items-center mb-4 text-white">
+        <div className="min-h-screen bg-[#111111] flex flex-col font-sans select-none overflow-hidden">
+            {/* Header */}
+            <div className="bg-[#1A1A1A] border-b border-[#2A2A2A] px-3 sm:px-6 py-2 sm:py-3">
+                <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
                     <button
                         onClick={() => router.back()}
-                        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+                        className="min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-[#A0A0A0] hover:text-white transition-colors cursor-pointer shrink-0"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-                        Back
+                        <ArrowLeft size={16} />
+                        <span className="hidden sm:inline">Back to Materials</span>
+                        <span className="sm:hidden">Back</span>
                     </button>
-                    <h1 className="text-lg font-semibold truncate max-w-lg">{title}</h1>
-                    <div className="w-16"></div> {/* Spacer */}
+                    <div className="flex items-center gap-2 max-w-[180px] sm:max-w-md truncate">
+                        <span className="w-2 h-2 rounded-full bg-[#F36A21] shrink-0"></span>
+                        <h1 className="text-xs sm:text-sm font-semibold text-white truncate">{title || 'Material Viewer'}</h1>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-[#2A2A2A] text-[10px] sm:text-[11px] text-[#A0A0A0] shrink-0">
+                        <Shield size={12} className="text-[#F36A21]" />
+                        <span className="hidden sm:inline">Protected View</span>
+                    </div>
                 </div>
+            </div>
 
+            <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative">
                 {/* Secure Viewer Container */}
-                <div className="w-full max-w-6xl h-[80vh] bg-black rounded-xl overflow-hidden shadow-2xl relative border border-slate-800">
-                    <div className={`w-full h-full transition-all duration-300 ${isBlurred ? 'blur-xl opacity-50' : ''}`}>
+                <div className="w-full max-w-6xl h-[84vh] bg-black rounded-2xl overflow-hidden shadow-2xl relative border border-[#2A2A2A]">
+                    <div className={`w-full h-full transition-all duration-300 ${isBlurred ? 'blur-xl opacity-40' : ''}`}>
                         {iframeUrl ? (
                             <iframe
                                 src={iframeUrl}
@@ -140,39 +143,44 @@ export default function SecureViewerPage() {
                                 title="Secure Viewer"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-500">
-                                {status === 'loading' ? 'Checking access...' : 'Loading Viewer...'}
+                            <div className="w-full h-full flex items-center justify-center text-[#858585] text-sm">
+                                {status === 'loading' ? 'Verifying board access...' : 'Loading document...'}
                             </div>
                         )}
                     </div>
 
-                    {/* Mask to hide Google Drive Pop-out button */}
-                    <div className="absolute top-0 right-0 w-20 h-16 bg-black z-10 pointer-events-auto"></div>
+                    {/* Mask to prevent popout window opening */}
+                    <div className="absolute top-0 right-0 w-24 h-16 bg-black z-10 pointer-events-auto"></div>
 
-                    {/* Watermark Overlay */}
+                    {/* Dynamic Watermark Overlay */}
                     <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden opacity-10 flex flex-col justify-between p-10 select-none">
                         {[...Array(5)].map((_, i) => (
-                            <div key={i} className="flex justify-between transform -rotate-12 whitespace-nowrap text-white text-3xl font-bold">
-                                <span>{session?.user?.email || 'MATHAMETRY'}</span>
-                                <span>DO NOT SHAR OR SCREENSHOTE</span>
-                                <span>{session?.user?.email || 'MATHAMETRY'}</span>
+                            <div key={i} className="flex justify-between transform -rotate-12 whitespace-nowrap text-white text-2xl font-bold tracking-wider">
+                                <span>{session?.user?.email || 'MATHMETRY ENCRYPTED'}</span>
+                                <span>CONFIDENTIAL • DO NOT SHARE OR SCREENSHOT</span>
+                                <span>{session?.user?.email || 'MATHMETRY ENCRYPTED'}</span>
                             </div>
                         ))}
                     </div>
 
-                    {/* Blur Warning Message */}
+                    {/* Security Blur Alert */}
                     {isBlurred && (
-                        <div className="absolute inset-0 z-30 flex items-center justify-center">
-                            <div className="bg-slate-800 text-white px-8 py-4 rounded-xl shadow-2xl text-center border border-slate-700">
-                                <h3 className="text-xl font-bold mb-2">Security Alert</h3>
-                                <p className="text-slate-400">Content hidden while window is effectively inactive.</p>
+                        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-md">
+                            <div className="bg-[#1A1A1A] text-white px-8 py-6 rounded-2xl shadow-2xl text-center border border-[#333333] max-w-sm">
+                                <div className="w-10 h-10 rounded-full bg-[#FFF4EC] text-[#F36A21] flex items-center justify-center mx-auto mb-3">
+                                    <Lock size={18} />
+                                </div>
+                                <h3 className="text-base font-bold mb-1">Viewer Paused</h3>
+                                <p className="text-xs text-[#858585]">
+                                    Content is automatically shielded while focus is outside the browser window.
+                                </p>
                             </div>
                         </div>
                     )}
                 </div>
 
-                <p className="mt-4 text-slate-500 text-xs">
-                    Protected Content. Downloading and printing is disabled.
+                <p className="mt-3 text-[#626262] text-xs">
+                    Protected Mathmetry Academic Content • Printing and saving disabled
                 </p>
             </div>
         </div>

@@ -7,7 +7,10 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: Request) {
     try {
         await dbConnect();
-        const exams = await Exam.find({ isPublished: true }).sort({ createdAt: -1 });
+        const exams = await Exam.find({ isPublished: true })
+            .select('title subject duration totalMarks isPublished createdAt')
+            .sort({ createdAt: -1 })
+            .lean();
         return NextResponse.json(exams);
     } catch (error) {
         return NextResponse.json({ message: 'Error fetching exams' }, { status: 500 });

@@ -16,16 +16,21 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get counts
-        const materialsCount = await Material.countDocuments();
-        const examsCount = await Exam.countDocuments();
-        const coursesCount = await Course.countDocuments();
-
-        // Get user's board access
-        const userBoardAccess = await BoardAccess.find({ 
-            userId: session.user.id,
-            status: 'active'
-        }).lean();
+        // Run initial independent queries in parallel
+        const [materialsCount, examsCount, coursesCount, userBoardAccess, recentExams] = await Promise.all([
+            Material.countDocuments(),
+            Exam.countDocuments(),
+            Course.countDocuments(),
+            BoardAccess.find({ 
+                userId: session.user.id,
+                status: 'active'
+            }).lean(),
+            Exam.find()
+                .sort({ createdAt: -1 })
+                .limit(3)
+                .select('title subject totalMarks')
+                .lean()
+        ]);
 
         // Get materials from purchased boards using $in operator
         let recentMaterials: { _id: string; title: string; subject: string; createdAt: Date; fileUrl: string | null | undefined }[] = [];
@@ -51,12 +56,6 @@ export async function GET() {
                 fileUrl: material.fileUrl
             }));
         }
-
-        // Get recent exams (last 3)
-        const recentExams = await Exam.find()
-            .sort({ createdAt: -1 })
-            .limit(3)
-            .select('title subject totalMarks');
 
         return NextResponse.json({
             materialsCount,

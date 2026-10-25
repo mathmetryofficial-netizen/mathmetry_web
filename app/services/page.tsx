@@ -1,82 +1,142 @@
+'use client';
+
 import Link from "next/link";
-import { CheckCircle } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import ApplicationFooter from "@/components/ApplicationFooter";
+import SectionHeading from "@/components/SectionHeading";
+import { Check, Mail, MessageSquare, Phone, UserCheck, HelpCircle, FileCheck, ArrowRight } from "lucide-react";
 
 export default function ServicesPage() {
+    const services = [
+        {
+            icon: UserCheck,
+            title: "1-on-1 Board Mentorship",
+            description: "Personalized online tutoring with senior mathematics educators tailored to your specific weak chapters.",
+            highlights: [
+                "Custom diagnostic assessment to find knowledge gaps",
+                "Flexible scheduling around school timings",
+                "Direct focus on high-weightage board topics",
+                "Regular parent-teacher progress updates"
+            ],
+            badge: "Personalized"
+        },
+        {
+            icon: MessageSquare,
+            title: "Priority Doubt Clearance",
+            description: "Never stay stuck on a tricky theorem or textbook problem. Submit your queries for step-by-step breakdown.",
+            highlights: [
+                "Detailed written proofs & video solutions",
+                "Dedicated mathematics problem-solving desk",
+                "Covering Foundation, ICSE & CBSE problems",
+                "Step-wise rubric hints for board exams"
+            ],
+            badge: "Continuous"
+        },
+        {
+            icon: FileCheck,
+            title: "Mock Paper Grading & Feedback",
+            description: "Submit written mock examination papers and receive detailed method corrections modeled after board evaluation standards.",
+            highlights: [
+                "Line-by-line mark allocation breakdown",
+                "Identification of presentation mistakes",
+                "Speed & time allocation recommendations",
+                "Model answer sheet comparisons"
+            ],
+            badge: "Exam Ready"
+        }
+    ];
+
     return (
-        <div className="min-h-screen bg-[#F7F8FC] flex justify-center p-4 md:p-8 font-sans">
-            <div className="w-full max-w-[1400px] bg-white rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col min-h-[90vh]">
+        <div className="min-h-screen bg-[#FFFCFB] text-[#111111] flex flex-col font-sans selection:bg-[#FFF4EC] selection:text-[#DE5815]">
+            <Navbar />
 
-                <nav className="flex items-center justify-between px-8 py-6 md:px-12 border-b border-slate-100">
-                    <div className="flex-1 flex items-center justify-start">
-                        <Link href="/" className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                            <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white">M</div>
-                            Mathmetry
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <SectionHeading
+                    eyebrow="Academic Services"
+                    title="Targeted Academic Mentorship &"
+                    highlight="Evaluation."
+                    subtitle="Personalized guidance and paper evaluations to support your school and board examination preparation."
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                    {services.map((svc) => {
+                        const IconComponent = svc.icon;
+                        return (
+                            <div
+                                key={svc.title}
+                                className="card-editorial p-8 flex flex-col justify-between"
+                            >
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#F36A21]">
+                                            {svc.badge}
+                                        </span>
+                                    </div>
+
+                                    <div className="w-12 h-12 rounded-xl bg-[#F9F5F1] border border-[#EAE5E1] text-[#111111] flex items-center justify-center mb-6">
+                                        <IconComponent size={22} className="text-[#F36A21]" />
+                                    </div>
+
+                                    <h3 className="text-xl font-bold text-[#111111] mb-2 leading-snug">
+                                        {svc.title}
+                                    </h3>
+
+                                    <p className="text-xs text-[#626262] leading-relaxed mb-6">
+                                        {svc.description}
+                                    </p>
+
+                                    <div className="space-y-2.5 pt-4 border-t border-[#F0EBE7] mb-8">
+                                        {svc.highlights.map((h, i) => (
+                                            <div key={i} className="flex items-start gap-2.5 text-xs text-[#111111]">
+                                                <div className="w-4 h-4 rounded-full bg-[#FFF4EC] text-[#F36A21] flex items-center justify-center shrink-0 mt-0.5">
+                                                    <Check size={11} strokeWidth={3} />
+                                                </div>
+                                                <span>{h}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <Link
+                                    href="/support"
+                                    className="w-full py-2.5 px-4 bg-[#111111] hover:bg-[#F36A21] text-white text-xs font-semibold rounded-full flex items-center justify-center gap-1.5 transition-colors"
+                                >
+                                    <span>Inquire for Details</span>
+                                    <ArrowRight size={13} />
+                                </Link>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Contact Inquiries Banner */}
+                <div className="bg-[#F9F5F1] border border-[#EAE5E1] rounded-3xl p-8 sm:p-12 text-center max-w-4xl mx-auto">
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-[#111111] mb-3">
+                        Have Questions About Enrollment?
+                    </h3>
+                    <p className="text-sm sm:text-base text-[#626262] max-w-xl mx-auto mb-6 leading-relaxed">
+                        Our academic advisors can guide you toward the right board package, revision sets, or mentorship option.
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <Link
+                            href="/support"
+                            className="inline-flex items-center gap-2 px-7 py-3 bg-[#F36A21] hover:bg-[#DE5815] text-white rounded-full font-bold text-sm shadow-xs transition-colors"
+                        >
+                            <span>Contact Academic Support</span>
+                            <ArrowRight size={15} />
                         </Link>
+                        <a
+                            href="mailto:mathmetry.official@gmail.com"
+                            className="inline-flex items-center gap-2 px-7 py-3 bg-white hover:bg-[#FFFCFB] text-[#111111] border border-[#EAE5E1] rounded-full font-semibold text-sm transition-colors"
+                        >
+                            <Mail size={15} className="text-[#F36A21]" />
+                            <span>mathmetry.official@gmail.com</span>
+                        </a>
                     </div>
-                    <div className="hidden md:flex flex-1 items-center justify-center gap-8 font-medium text-slate-500">
-                        <Link href="/" className="hover:text-slate-900 transition">Home</Link>
-                        <Link href="/courses" className="hover:text-slate-900 transition">Courses</Link>
-                        <Link href="/services" className="text-slate-900 font-bold">Services</Link>
-                        <Link href="/support" className="hover:text-slate-900 transition">Support</Link>
-                        <Link href="/about" className="hover:text-slate-900 transition">About</Link>
-                    </div>
-                    <div className="flex-1 flex items-center justify-end">
-                        <Link href="/auth/signup" className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm hover:scale-105 transition-transform">
-                            Start
-                        </Link>
-                    </div>
-                </nav>
+                </div>
+            </main>
 
-                <main className="flex-1 p-8 md:p-12">
-                    <div className="text-center max-w-3xl mx-auto mb-16">
-                        <h1 className="text-4xl font-bold text-slate-900 mb-6">Our Services</h1>
-                        <p className="text-lg text-slate-600">
-                            Beyond just courses, we offer a range of services to ensure your mathematical journey is smooth and successful.
-                        </p>
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-8 px-4">
-                        <div className="bg-indigo-50 rounded-3xl p-8 flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-6">
-                                <span className="text-2xl">🎓</span>
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-900 mb-3">1-on-1 Tutoring</h3>
-                            <p className="text-slate-600 mb-6">Personalized attention from expert math tutors to help you conquer difficult topics.</p>
-                            <ul className="text-left w-full space-y-2 mb-8">
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-indigo-500" /> Flexible Scheduling</li>
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-indigo-500" /> Personalized Plan</li>
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-indigo-500" /> Progress Tracking</li>
-                            </ul>
-                        </div>
-
-                        <div className="bg-emerald-50 rounded-3xl p-8 flex flex-col items-center text-center border-2 border-emerald-100">
-                            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-                                <span className="text-2xl">💬</span>
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-900 mb-3">Live Doubt Clearing</h3>
-                            <p className="text-slate-600 mb-6">Stuck on a problem? Get instant help from our community and mentors.</p>
-                            <ul className="text-left w-full space-y-2 mb-8">
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-emerald-500" /> 24/7 Availability</li>
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-emerald-500" /> Video Solutions</li>
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-emerald-500" /> Concept Revision</li>
-                            </ul>
-                        </div>
-
-                        <div className="bg-amber-50 rounded-3xl p-8 flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6">
-                                <span className="text-2xl">📊</span>
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-900 mb-3">Performance Analytics</h3>
-                            <p className="text-slate-600 mb-6">Data-driven insights to identify your weak areas and improve efficiently.</p>
-                            <ul className="text-left w-full space-y-2 mb-8">
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-amber-500" /> Detailed Reports</li>
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-amber-500" /> Growth Charts</li>
-                                <li className="flex items-center text-sm text-slate-700 gap-2"><CheckCircle size={16} className="text-amber-500" /> Comparative Analysis</li>
-                            </ul>
-                        </div>
-                    </div>
-                </main>
-            </div>
+            <ApplicationFooter />
         </div>
     );
 }
